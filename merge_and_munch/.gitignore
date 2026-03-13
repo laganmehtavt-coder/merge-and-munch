@@ -1,0 +1,45 @@
+# Unity generated folders
+[Ll]ibrary/
+[Tt]emp/
+[Oo]bj/
+[Bb]uild/
+[Bb]uilds/
+[Ll]ogs/
+UserSettings/
+
+# MemoryCaptures
+MemoryCaptures/
+
+# Asset meta data should stay, but ignore if missing
+!/[Aa]ssets/**/*.meta
+
+# Visual Studio / VSCode
+.vs/
+.vscode/
+*.csproj
+*.unityproj
+*.sln
+*.suo
+*.tmp
+*.user
+*.userprefs
+*.pidb
+*.booproj
+
+# OS generated
+.DS_Store
+Thumbs.db
+
+# Crash reports
+sysinfo.txt
+
+# Auto generated JetBrains Rider
+.idea/
+
+# Gradle / Android
+.gradle/
+
+# Exported builds
+*.apk
+*.aab
+*.unitypackage
