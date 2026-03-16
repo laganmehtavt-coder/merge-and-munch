@@ -1,27 +1,39 @@
 using UnityEngine;
-using MergeGame;
 
 [CreateAssetMenu(fileName = "ItemData", menuName = "MergeGame/Item")]
 public class ItemData : ScriptableObject {
-    [Header("Basic")]
-    public string itemName;
-    public int level;
+    public enum BehaviourType {
+        Bounce,
+        Jelly,
+        Solid
+    }
 
-    [Header("Visual")]
+    [Header("Sprite")]
     public Sprite sprite;
-    public GameObject prefab;
+    [Tooltip("Controls visual size")]
+    public float size = 1f;
 
-    [Header("Shape")]
-    public ItemShape shape;
+    [Header("Behaviour")]
+    public BehaviourType behaviour;
 
-    [Header("Size")]
-    public Vector2 size = Vector2.one;
-
-    [Header("Effect")]
-    public ItemEffect effect;
+    [Header("Physics")]
+    public PhysicsMaterial2D physicsMaterial;
+    public float mass = 1f;
+    public float gravityScale = 1f;
 
     [Header("Sounds")]
     public AudioClip dropSound;
     public AudioClip mergeSound;
-    public AudioClip destroySound;
+
+    [Header("Merge Chain")]
+    public ItemData nextItem;
+
+    [Header("Animation")]
+    [Tooltip("Animator Controller for complex animations")]
+    public RuntimeAnimatorController animatorController;
+    [Tooltip("Single animation clip for simple animations")]
+    public AnimationClip animationClip;
+
+    [Tooltip("Time in seconds between automatic animation plays")]
+    public float animationInterval = 3f; // default 3 seconds
 }
