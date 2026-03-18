@@ -890,17 +890,19 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 73da61514f215e34fa8993e2f3005527, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  itemPrefab: {fileID: 6776712701986311658, guid: f974e1d467fb9074da719dc1d16591d5, type: 3}
+  itemPrefab: {fileID: 409391677702575323, guid: da48ea89e89979449b6b3659e0532cd2, type: 3}
   items:
-  - {fileID: 11400000, guid: 455c48a326080db4aa0927de126629f4, type: 2}
-  - {fileID: 11400000, guid: af93edce676f1c94a8ef055660e0d2ed, type: 2}
+  - {fileID: 11400000, guid: 46ed57f1d4a80ae4c98a0075ee294ed4, type: 2}
+  - {fileID: 11400000, guid: 6924b448596dabe4cafaca35cd2a9dd9, type: 2}
+  - {fileID: 11400000, guid: 52317730c66c2924991137393aa8a782, type: 2}
+  - {fileID: 11400000, guid: 6924b448596dabe4cafaca35cd2a9dd9, type: 2}
+  - {fileID: 11400000, guid: caca33db666b87d418ec0a1cc00ea101, type: 2}
+  - {fileID: 11400000, guid: 0fe14c56e2d88204e844f17d5e52ee0c, type: 2}
+  - {fileID: 11400000, guid: 1c1261cc0101b8e42862b176ab80a803, type: 2}
   difficulty: 0
   spawnPoint: {fileID: 259179291}
   spawnPointImage: {fileID: 1432593518}
-  upcomingSize: 3
   nextSpawnDelay: 0.75
-  minX: -2.45
-  maxX: 2.45
 --- !u!1 &651198092
 GameObject:
   m_ObjectHideFlags: 0
@@ -1254,7 +1256,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!114 &991043665
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1746,7 +1748,7 @@ Transform:
   m_GameObject: {fileID: 1432593517}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 1.37, y: 2.01, z: 0}
+  m_LocalPosition: {x: 1.37, y: 4.3, z: 0}
   m_LocalScale: {x: 2.5, y: 2.5, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:

@@ -1,128 +1,109 @@
-using UnityEngine;
+﻿using UnityEngine;
 using System.Collections;
-using System.Collections.Generic;
 
-[RequireComponent(typeof(SpriteRenderer))]
 public class Item : MonoBehaviour {
     public ItemData data;
     public bool isDropped;
-
-    SpriteRenderer sr;
-    Rigidbody2D rb;
-    PolygonCollider2D polyCol;
-    Animator animator;           // Animator for controller
-    Animation animationComp;     // Optional for single clips
-
-    int instanceID;
+    private SpriteRenderer sr;
+    private int instanceID;
+    private bool isMerging = false; // ✅ Merge block karne ke liye
 
     void Awake() {
         sr = GetComponent<SpriteRenderer>();
+        if (sr == null)
+            sr = GetComponentInChildren<SpriteRenderer>();
+        instanceID = GetInstanceID();
 
-        // Remove any existing CircleCollider2D
-        CircleCollider2D circleCol = GetComponent<CircleCollider2D>();
-        if (circleCol != null)
-            Destroy(circleCol);
-
-        // Add PolygonCollider2D
-        polyCol = gameObject.AddComponent<PolygonCollider2D>();
+        foreach (Collider2D col in GetComponentsInChildren<Collider2D>()) {
+            if (col.gameObject != gameObject) {
+                var proxy = col.gameObject.GetComponent<ItemCollisionProxy>();
+                if (proxy == null)
+                    proxy = col.gameObject.AddComponent<ItemCollisionProxy>();
+                proxy.parentItem = this;
+            }
+        }
     }
 
     public void Initialize(ItemData newData, bool dropped) {
         data = newData;
         isDropped = dropped;
-
-        instanceID = GetInstanceID();
-
         if (data == null)
             return;
 
         sr.sprite = data.sprite;
         transform.localScale = Vector3.one * data.size;
 
-        AdjustCollider();
-        ApplyPhysicsMaterial();
-        SetupAnimation();
-
-        // Start repeating animation every 3 seconds
-        StartCoroutine(PlayAnimationLoop());
-    }
-
-    void AdjustCollider() {
-        if (polyCol == null || sr.sprite == null)
-            return;
-
-        polyCol.pathCount = sr.sprite.GetPhysicsShapeCount();
-        for (int i = 0; i < sr.sprite.GetPhysicsShapeCount(); i++) {
-            var path = new List<Vector2>();
-            sr.sprite.GetPhysicsShape(i, path);
-            polyCol.SetPath(i, path.ToArray());
-        }
-    }
-
-    void ApplyPhysicsMaterial() {
-        if (data.physicsMaterial != null && polyCol != null) {
-            polyCol.sharedMaterial = data.physicsMaterial;
-        }
+        SetGravity(0f);
+        if (isDropped)
+            ActivatePhysics();
     }
 
     public void ActivatePhysics() {
-        if (rb != null)
-            return;
-
-        rb = gameObject.AddComponent<Rigidbody2D>();
-        rb.mass = data.mass;
-        rb.gravityScale = data.gravityScale;
-        rb.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
-        rb.interpolation = RigidbodyInterpolation2D.Interpolate;
+        isDropped = true;
+        SetGravity(data.gravityScale);
     }
 
-    void SetupAnimation() {
-        if (data.animatorController != null) {
-            animator = gameObject.AddComponent<Animator>();
-            animator.runtimeAnimatorController = data.animatorController;
-        } else if (data.animationClip != null) {
-            animationComp = gameObject.AddComponent<Animation>();
-            animationComp.clip = data.animationClip;
+    private void SetGravity(float scale) {
+        Rigidbody2D[] rbs = GetComponentsInChildren<Rigidbody2D>();
+        foreach (Rigidbody2D rb in rbs) {
+            rb.gravityScale = scale;
+            if (scale > 0)
+                rb.bodyType = RigidbodyType2D.Dynamic;
         }
     }
 
-    IEnumerator PlayAnimationLoop() {
-        if (data == null || data.animationInterval <= 0f)
-            yield break;
+    public void ProxyCollisionEnter(Collision2D collision) {
+        if (!isDropped || isMerging)
+            return; // ✅ Agar pehle se merge ho raha hai toh rukk jao
 
-        while (true) {
-            yield return new WaitForSeconds(data.animationInterval);
+        Item other = collision.gameObject.GetComponentInParent<Item>();
 
-            if (animator != null) {
-                animator.Play(animator.GetCurrentAnimatorStateInfo(0).shortNameHash, -1, 0f);
-            } else if (animationComp != null) {
-                animationComp.Play();
+        if (other != null && other.data == this.data && other.isDropped && !other.isMerging) {
+            // ✅ Master Item check using InstanceID
+            if (this.instanceID < other.GetID()) {
+                ExecuteMerge(other);
             }
         }
     }
 
-    void OnCollisionEnter2D(Collision2D collision) {
-        if (!collision.gameObject.CompareTag("Item"))
+    private void ExecuteMerge(Item other) {
+        isMerging = true;      // ✅ Is item ko lock karo
+        other.isMerging = true; // ✅ Dusre item ko bhi lock karo
+
+        if (data.nextItem == null)
             return;
 
-        Item other = collision.gameObject.GetComponent<Item>();
-        if (other == null || other.data != data)
-            return;
-        if (instanceID < other.instanceID)
-            return;
-
-        Merge(other);
-    }
-
-    void Merge(Item other) {
+        // ✅ Spawn Position: Dono ke beech mein
         Vector2 spawnPos = (transform.position + other.transform.position) / 2f;
 
-        if (data.mergeSound != null)
+        if (data.mergeSound != null && SoundManager.Instance != null)
             SoundManager.Instance.PlaySound(data.mergeSound);
-        if (data.nextItem != null)
-            SpawnManager.Instance.SpawnMergedItem(data.nextItem, spawnPos);
 
+        // Naya fruit spawn karo
+        SpawnManager.Instance.SpawnMergedItem(data.nextItem, spawnPos);
+
+        // Dono ko khatam karo
         Destroy(other.gameObject);
-        Destroy(gameObject);
+        Destroy(this.gameObject);
     }
+    void OnCollisionEnter2D(Collision2D collision) {
+        // Debug 1: Dekhne ke liye ki takraav ho raha hai ya nahi
+        Debug.Log("Takra gaya: " + collision.gameObject.name + " Tag: " + collision.gameObject.tag);
+
+        // Tag check ko thoda flexible banate hain (sirf testing ke liye niche wali line use karein)
+        // if (!collision.gameObject.CompareTag("Item")) return; 
+
+        Item other = collision.gameObject.GetComponentInParent<Item>();
+
+        if (other != null) {
+            Debug.Log("Item script mil gayi! My Data: " + data.name + " Other Data: " + other.data.name);
+
+            if (other.data == data) {
+                if (instanceID < other.GetID() && isDropped && other.isDropped && !isMerging) {
+                    ExecuteMerge(other);
+                }
+            }
+        }
+    }
+    public int GetID() { return instanceID; }
 }
