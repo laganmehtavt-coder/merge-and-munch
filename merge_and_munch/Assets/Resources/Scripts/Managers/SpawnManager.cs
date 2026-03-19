@@ -4,7 +4,7 @@ using UnityEngine;
 
 public class SpawnManager : MonoBehaviour {
     public static SpawnManager Instance;
-
+    HashSet<ItemData> spawnedOnce = new HashSet<ItemData>();
     [Header("Item Prefab")]
     [SerializeField] GameObject itemPrefab;
 
@@ -101,6 +101,16 @@ public class SpawnManager : MonoBehaviour {
 
         currentItem.Initialize(data, false);
 
+        // ✅ FIRST TIME SPAWN CHECK
+        if (!spawnedOnce.Contains(data)) {
+            spawnedOnce.Add(data);
+
+            // UI update
+            if (ItemUIManager.Instance != null) {
+                ItemUIManager.Instance.OnItemSpawn(data);
+            }
+        }
+
         upcomingItems.Enqueue(GetRandomItem());
     }
 
@@ -126,6 +136,7 @@ public class SpawnManager : MonoBehaviour {
     }
 
     // 🔥 MERGE SPAWN (FIXED)
+    // 🔥 MERGE SPAWN (NO SCALE EFFECT)
     public void SpawnMergedItem(ItemData data, Vector2 position) {
         if (itemPrefab == null || data == null)
             return;
@@ -134,14 +145,17 @@ public class SpawnManager : MonoBehaviour {
         Item newItem = obj.GetComponent<Item>();
 
         if (newItem != null) {
+            obj.transform.localScale = Vector3.one * data.size;
+
             newItem.Initialize(data, true);
 
-            // ✅ FIX: STOP INITIAL JITTER
+            // ✅ PHYSICS FIX
             StartCoroutine(FixSpawnPhysics(newItem));
 
-            // ✅ POP EFFECT
-            obj.transform.localScale = Vector3.zero;
-            StartCoroutine(PopEffect(obj, data.size));
+            // 🔥 UI CALL (IMPORTANT)
+            if (ItemUIManager.Instance != null) {
+                ItemUIManager.Instance.OnItemSpawn(data);
+            }
         }
     }
 
