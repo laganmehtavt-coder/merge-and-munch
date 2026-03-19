@@ -10,7 +10,8 @@ public class Item : MonoBehaviour {
     private SpriteRenderer sr;
     private int instanceID;
     private bool isMerging = false;
-
+    [Header("Physics Settings")]
+    public PhysicsMaterial2D bounceMaterial; // Drag your 'Bouncy' material here in Inspector
     void Awake() {
         sr = GetComponent<SpriteRenderer>();
         if (sr == null)
@@ -63,6 +64,12 @@ public class Item : MonoBehaviour {
 
         foreach (Rigidbody2D rb in rbs) {
             rb.gravityScale = scale;
+
+            // ✅ Assign Physics Material to all colliders attached to this RB
+            Collider2D[] cols = rb.GetComponents<Collider2D>();
+            foreach (Collider2D col in cols) {
+                col.sharedMaterial = bounceMaterial;
+            }
 
             if (scale > 0) {
                 rb.bodyType = RigidbodyType2D.Dynamic;

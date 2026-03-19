@@ -793,6 +793,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   data: {fileID: 0}
   isDropped: 0
+  mergeBone: {fileID: 0}
+  bounceMaterial: {fileID: 0}
 --- !u!1 &5857469884382591548
 GameObject:
   m_ObjectHideFlags: 0
