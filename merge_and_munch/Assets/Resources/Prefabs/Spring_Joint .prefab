@@ -137,6 +137,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   data: {fileID: 0}
   isDropped: 0
+  mergeBone: {fileID: 599076153024146053}
 --- !u!1 &1906532579625266781
 GameObject:
   m_ObjectHideFlags: 0

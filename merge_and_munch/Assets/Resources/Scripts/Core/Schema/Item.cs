@@ -1,24 +1,37 @@
 ﻿using UnityEngine;
-using System.Collections;
 
 public class Item : MonoBehaviour {
     public ItemData data;
     public bool isDropped;
+
+    [Header("Merge Bone")]
+    public Transform mergeBone;
+
     private SpriteRenderer sr;
     private int instanceID;
-    private bool isMerging = false; // ✅ Merge block karne ke liye
+    private bool isMerging = false;
 
     void Awake() {
         sr = GetComponent<SpriteRenderer>();
         if (sr == null)
             sr = GetComponentInChildren<SpriteRenderer>();
+
         instanceID = GetInstanceID();
 
+        // ✅ Auto assign bone
+        if (mergeBone == null) {
+            Transform bone = transform.Find("Bone");
+            if (bone != null)
+                mergeBone = bone;
+        }
+
+        // ✅ Setup proxy
         foreach (Collider2D col in GetComponentsInChildren<Collider2D>()) {
             if (col.gameObject != gameObject) {
                 var proxy = col.gameObject.GetComponent<ItemCollisionProxy>();
                 if (proxy == null)
                     proxy = col.gameObject.AddComponent<ItemCollisionProxy>();
+
                 proxy.parentItem = this;
             }
         }
@@ -27,6 +40,7 @@ public class Item : MonoBehaviour {
     public void Initialize(ItemData newData, bool dropped) {
         data = newData;
         isDropped = dropped;
+
         if (data == null)
             return;
 
@@ -34,6 +48,7 @@ public class Item : MonoBehaviour {
         transform.localScale = Vector3.one * data.size;
 
         SetGravity(0f);
+
         if (isDropped)
             ActivatePhysics();
     }
@@ -45,65 +60,83 @@ public class Item : MonoBehaviour {
 
     private void SetGravity(float scale) {
         Rigidbody2D[] rbs = GetComponentsInChildren<Rigidbody2D>();
+
         foreach (Rigidbody2D rb in rbs) {
             rb.gravityScale = scale;
-            if (scale > 0)
+
+            if (scale > 0) {
                 rb.bodyType = RigidbodyType2D.Dynamic;
-        }
-    }
-
-    public void ProxyCollisionEnter(Collision2D collision) {
-        if (!isDropped || isMerging)
-            return; // ✅ Agar pehle se merge ho raha hai toh rukk jao
-
-        Item other = collision.gameObject.GetComponentInParent<Item>();
-
-        if (other != null && other.data == this.data && other.isDropped && !other.isMerging) {
-            // ✅ Master Item check using InstanceID
-            if (this.instanceID < other.GetID()) {
-                ExecuteMerge(other);
+                rb.drag = 1.5f;
+                rb.angularDrag = 3f;
+                rb.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
+                rb.interpolation = RigidbodyInterpolation2D.Interpolate;
             }
         }
     }
 
+    // 🔥 Proxy call yaha aayega
+    public void ProxyCollisionEnter(Collision2D collision) {
+        if (!isDropped || isMerging)
+            return;
+
+        Item other = collision.gameObject.GetComponentInParent<Item>();
+
+        if (other == null || other == this)
+            return;
+
+        if (other.data != data || !other.isDropped || other.isMerging)
+            return;
+
+        if (instanceID < other.GetID()) {
+            ExecuteMerge(other);
+        }
+    }
+
+    // 🔥 FINAL MERGE (BONE BASED)
     private void ExecuteMerge(Item other) {
-        isMerging = true;      // ✅ Is item ko lock karo
-        other.isMerging = true; // ✅ Dusre item ko bhi lock karo
+        isMerging = true;
+        other.isMerging = true;
 
         if (data.nextItem == null)
             return;
 
-        // ✅ Spawn Position: Dono ke beech mein
-        Vector2 spawnPos = (transform.position + other.transform.position) / 2f;
+        ResetPhysics(this);
+        ResetPhysics(other);
+
+        // 🎯 BONE POSITION
+        Vector2 spawnPos = GetBonePosition(this, other);
 
         if (data.mergeSound != null && SoundManager.Instance != null)
             SoundManager.Instance.PlaySound(data.mergeSound);
 
-        // Naya fruit spawn karo
         SpawnManager.Instance.SpawnMergedItem(data.nextItem, spawnPos);
 
-        // Dono ko khatam karo
         Destroy(other.gameObject);
         Destroy(this.gameObject);
     }
-    void OnCollisionEnter2D(Collision2D collision) {
-        // Debug 1: Dekhne ke liye ki takraav ho raha hai ya nahi
-        Debug.Log("Takra gaya: " + collision.gameObject.name + " Tag: " + collision.gameObject.tag);
 
-        // Tag check ko thoda flexible banate hain (sirf testing ke liye niche wali line use karein)
-        // if (!collision.gameObject.CompareTag("Item")) return; 
+    // 🎯 BONE POSITION FUNCTION
+    Vector2 GetBonePosition(Item a, Item b) {
+        Vector2 posA = a.mergeBone != null ? (Vector2)a.mergeBone.position : (Vector2)a.transform.position;
+        Vector2 posB = b.mergeBone != null ? (Vector2)b.mergeBone.position : (Vector2)b.transform.position;
 
-        Item other = collision.gameObject.GetComponentInParent<Item>();
+        return (posA + posB) / 2f;
+    }
 
-        if (other != null) {
-            Debug.Log("Item script mil gayi! My Data: " + data.name + " Other Data: " + other.data.name);
+    // 🔧 Physics reset
+    void ResetPhysics(Item item) {
+        Rigidbody2D[] rbs = item.GetComponentsInChildren<Rigidbody2D>();
 
-            if (other.data == data) {
-                if (instanceID < other.GetID() && isDropped && other.isDropped && !isMerging) {
-                    ExecuteMerge(other);
-                }
-            }
+        foreach (Rigidbody2D rb in rbs) {
+            rb.velocity = Vector2.zero;
+            rb.angularVelocity = 0f;
+            rb.drag = 2f;
+            rb.angularDrag = 5f;
+            rb.constraints = RigidbodyConstraints2D.FreezeRotation;
         }
     }
-    public int GetID() { return instanceID; }
+
+    public int GetID() {
+        return instanceID;
+    }
 }
