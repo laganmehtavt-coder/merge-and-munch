@@ -64,7 +64,7 @@ public class SpawnManager : MonoBehaviour {
         if (float.IsNaN(worldPos.x))
             return;
 
-        float xPos = Mathf.Clamp(worldPos.x, -1.31f, 1.31f);
+        float xPos = Mathf.Clamp(worldPos.x, -1.73f, 1.73f);
 
         currentItem.transform.position = new Vector2(xPos, spawnPoint.position.y);
 
