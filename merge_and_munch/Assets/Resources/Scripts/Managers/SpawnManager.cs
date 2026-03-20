@@ -4,6 +4,9 @@ using UnityEngine;
 
 public class SpawnManager : MonoBehaviour {
     public static SpawnManager Instance;
+    [Header("Effects")]
+    [SerializeField] GameObject clickEffectPrefab;
+    [SerializeField] GameObject mergeEffectPrefab;
     HashSet<ItemData> spawnedOnce = new HashSet<ItemData>();
     [Header("Item Prefab")]
     [SerializeField] GameObject itemPrefab;
@@ -118,8 +121,28 @@ public class SpawnManager : MonoBehaviour {
         if (currentItem == null)
             return;
 
-        canTakeInput = false;
+       
+        if (clickEffectPrefab != null) {
+            Vector3 clickPos;
 
+           
+            if (Input.touchCount > 0)
+                clickPos = Input.GetTouch(0).position;
+            else
+                clickPos = Input.mousePosition;
+
+        
+            clickPos.z = Mathf.Abs(cam.transform.position.z - spawnPoint.position.z);
+
+         
+            Vector3 worldClickPos = cam.ScreenToWorldPoint(clickPos);
+
+          
+            GameObject effect = Instantiate(clickEffectPrefab, worldClickPos, Quaternion.identity);
+            Destroy(effect, 2f);
+        }
+
+        canTakeInput = false;
         currentItem.ActivatePhysics();
 
         if (currentItem.data.dropSound != null && SoundManager.Instance != null)
@@ -135,27 +158,36 @@ public class SpawnManager : MonoBehaviour {
         SpawnLatestItem();
     }
 
-    // 🔥 MERGE SPAWN (FIXED)
-    // 🔥 MERGE SPAWN (NO SCALE EFFECT)
+ 
     public void SpawnMergedItem(ItemData data, Vector2 position) {
         if (itemPrefab == null || data == null)
             return;
+
+        
+        if (mergeEffectPrefab != null) {
+            GameObject mEffect = Instantiate(mergeEffectPrefab, position, Quaternion.identity);
+            Destroy(mEffect, 2f); 
+        }
 
         GameObject obj = Instantiate(itemPrefab, position, Quaternion.identity);
         Item newItem = obj.GetComponent<Item>();
 
         if (newItem != null) {
+          
             obj.transform.localScale = Vector3.one * data.size;
 
             newItem.Initialize(data, true);
 
-            // ✅ PHYSICS FIX
+        
             StartCoroutine(FixSpawnPhysics(newItem));
 
-            // 🔥 UI CALL (IMPORTANT)
+           
             if (ItemUIManager.Instance != null) {
                 ItemUIManager.Instance.OnItemSpawn(data);
             }
+
+         
+            StartCoroutine(PopEffect(obj, data.size));
         }
     }
 
