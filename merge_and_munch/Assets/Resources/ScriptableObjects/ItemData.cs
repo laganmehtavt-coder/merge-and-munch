@@ -1,39 +1,21 @@
 using UnityEngine;
 
-[CreateAssetMenu(fileName = "ItemData", menuName = "MergeGame/Item")]
+[CreateAssetMenu(fileName = "ItemData", menuName = "MergeGame/ItemData")]
 public class ItemData : ScriptableObject {
-    public enum BehaviourType {
-        Bounce,
-        Jelly,
-        Solid
-    }
-
-    [Header("Sprite")]
-    public Sprite sprite;
-    [Tooltip("Controls visual size")]
+    public string itemName;
+    public GameObject itemPrefab;
+    public ItemData nextItem;
     public float size = 1f;
-
-    [Header("Behaviour")]
-    public BehaviourType behaviour;
-
-    [Header("Physics")]
-    public PhysicsMaterial2D physicsMaterial;
-    public float mass = 1f;
     public float gravityScale = 1f;
+    public float mass = 1f;
 
-    [Header("Sounds")]
+    [Header("Visual Effects")]
+    public GameObject mergeEffectPrefab; // Merge hone par jo particle chalega
+
+    [Header("Animations")]
+    public RuntimeAnimatorController animatorController; // Fruit ki animation
+
+    [Header("Audio")]
     public AudioClip dropSound;
     public AudioClip mergeSound;
-
-    [Header("Merge Chain")]
-    public ItemData nextItem;
-
-    [Header("Animation")]
-    [Tooltip("Animator Controller for complex animations")]
-    public RuntimeAnimatorController animatorController;
-    [Tooltip("Single animation clip for simple animations")]
-    public AnimationClip animationClip;
-
-    [Tooltip("Time in seconds between automatic animation plays")]
-    public float animationInterval = 3f; // default 3 seconds
 }

@@ -663,7 +663,7 @@ SpriteRenderer:
   m_LightmapParameters: {fileID: 0}
   m_SortingLayerID: 0
   m_SortingLayer: 0
-  m_SortingOrder: -2
+  m_SortingOrder: 0
   m_Sprite: {fileID: 21300000, guid: d9b47da913dcb2344bef68af8d6531e9, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
@@ -890,17 +890,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 73da61514f215e34fa8993e2f3005527, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  itemPrefab: {fileID: 6776712701986311658, guid: f974e1d467fb9074da719dc1d16591d5, type: 3}
   items:
   - {fileID: 11400000, guid: 455c48a326080db4aa0927de126629f4, type: 2}
   - {fileID: 11400000, guid: af93edce676f1c94a8ef055660e0d2ed, type: 2}
-  difficulty: 0
+  - {fileID: 11400000, guid: d84f3f3d302c25547ae2845e15235626, type: 2}
   spawnPoint: {fileID: 259179291}
-  spawnPointImage: {fileID: 1432593518}
-  upcomingSize: 3
   nextSpawnDelay: 0.75
-  minX: -2.45
-  maxX: 2.45
+  clickEffectPrefab: {fileID: 8771972552311404799, guid: bbf9e36a48d6c5648a13889afab076fd, type: 3}
 --- !u!1 &651198092
 GameObject:
   m_ObjectHideFlags: 0
@@ -1148,7 +1144,7 @@ BoxCollider2D:
   m_GameObject: {fileID: 988458768}
   m_Enabled: 1
   m_Density: 1
-  m_Material: {fileID: 0}
+  m_Material: {fileID: 6200000, guid: 87262a1d94890d24fa14b8d18d7452e5, type: 2}
   m_IncludeLayers:
     serializedVersion: 2
     m_Bits: 0
@@ -1171,7 +1167,7 @@ BoxCollider2D:
   m_IsTrigger: 0
   m_UsedByEffector: 0
   m_UsedByComposite: 0
-  m_Offset: {x: 0, y: 0}
+  m_Offset: {x: 0.04774569, y: 0}
   m_SpriteTilingProperty:
     border: {x: 0, y: 0, z: 0, w: 0}
     pivot: {x: 0.5, y: 0.5}
@@ -1182,7 +1178,7 @@ BoxCollider2D:
     adaptiveTiling: 0
   m_AutoTiling: 0
   serializedVersion: 2
-  m_Size: {x: 1, y: 1}
+  m_Size: {x: 1.095491, y: 1}
   m_EdgeRadius: 0
 --- !u!212 &988458771
 SpriteRenderer:
@@ -1254,7 +1250,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!114 &991043665
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1736,7 +1732,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &1432593518
 Transform:
   m_ObjectHideFlags: 0
