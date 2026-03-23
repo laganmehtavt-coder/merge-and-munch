@@ -1125,8 +1125,8 @@ MonoBehaviour:
   - {fileID: 11400000, guid: af93edce676f1c94a8ef055660e0d2ed, type: 2}
   spawnPoint: {fileID: 259179291}
   nextSpawnDelay: 0.75
-  minX: -2.45
-  maxX: 2.45
+  minX: -1.7
+  maxX: 1.7
   clickEffect: {fileID: 100004, guid: 757df604761b8ef42831192c70ee1099, type: 3}
   nextItemImage: {fileID: 705908270}
   followImage: {fileID: 1432593518}
@@ -2510,7 +2510,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!224 &1603962741
 RectTransform:
   m_ObjectHideFlags: 0
