@@ -8,44 +8,49 @@ public class SpawnManager : MonoBehaviour {
     [Header("Item Prefab")]
     [SerializeField] GameObject itemPrefab;
 
-    [Header("Items (Scriptable Objects)")]
+    [Header("Items")]
     [SerializeField] List<ItemData> items = new List<ItemData>();
 
+    public enum Difficulty { Easy, Medium, Hard }
 
-    public enum Difficulty {
-        Easy,
-        Medium,
-        Hard
-    }
-
-    [Header("Spawn Difficulty")]
+    [Header("Difficulty")]
     [SerializeField] Difficulty difficulty = Difficulty.Easy;
-
 
     [Header("Spawn Settings")]
     [SerializeField] Transform spawnPoint;
-    [SerializeField] Transform spawnPointImage; 
+    [SerializeField] Transform spawnPointImage;
     [SerializeField] int upcomingSize = 3;
     [SerializeField] float nextSpawnDelay = 0.75f;
 
-    [Header("Movement Limits")]
-    [SerializeField] float minX = -2.45f;
-    [SerializeField] float maxX = 2.45f;
+    [Header("Movement")]
+    [SerializeField] float minX = -1.7f;
+    [SerializeField] float maxX = 1.7f;
+
+    [Header("Effects")]
+    [SerializeField] GameObject clickEffect;
+
+    [Header("UI / Extra Image")]
+    [SerializeField] GameObject clickHideImage;
+
+    [Header("Idle Hint Settings")]
+    [SerializeField] float idleDelay = 1.5f;     // 👈 wait time
+    [SerializeField] float shakeAmount = 0.3f;   // 👈 left-right distance
+    [SerializeField] float shakeSpeed = 3f;      // 👈 speed
 
     Queue<ItemData> upcomingItems = new Queue<ItemData>();
-
     Item currentItem;
 
     bool canTakeInput = true;
-
     Camera cam;
+
+    float idleTimer = 0f;
+    bool isShaking = false;
 
     void Awake() {
         if (Instance != null && Instance != this) {
             Destroy(gameObject);
             return;
         }
-
         Instance = this;
         cam = Camera.main;
     }
@@ -55,109 +60,113 @@ public class SpawnManager : MonoBehaviour {
     }
 
     void Update() {
-        if (currentItem == null || !canTakeInput)
-            return;
-
-        if (currentItem.isDropped)
+        if (currentItem == null || !canTakeInput || currentItem.isDropped)
             return;
 
         HandleMovement();
         HandleDrop();
+        HandleIdleHint();
     }
 
+    // =========================
     void HandleMovement() {
-        if (currentItem == null)
-            return;
+        Vector3 pointerPos = Input.touchCount > 0
+            ? Input.GetTouch(0).position
+            : Input.mousePosition;
 
-        Vector3 pointerPos;
+        pointerPos.z = Mathf.Abs(cam.transform.position.z);
 
-        // Get pointer: touch or mouse
-        if (Input.touchCount > 0) {
-            pointerPos = Input.GetTouch(0).position;
-        } else {
-            pointerPos = Input.mousePosition;
-        }
-
-        // Clamp pointer inside screen (optional)
-        pointerPos.x = Mathf.Clamp(pointerPos.x, 0f, Screen.width);
-        pointerPos.y = Mathf.Clamp(pointerPos.y, 0f, Screen.height);
-
-        // Z distance from camera to spawn point
-        pointerPos.z = Mathf.Abs(cam.transform.position.z - spawnPoint.position.z);
-
-        // Convert to world position
         Vector3 worldPos = cam.ScreenToWorldPoint(pointerPos);
 
-        if (float.IsNaN(worldPos.x) || float.IsNaN(worldPos.y)) {
-            Debug.LogWarning("ScreenToWorldPoint returned NaN!");
+        if (float.IsNaN(worldPos.x))
             return;
-        }
 
-        // Clamp horizontal movement to -1.31 .. 1.31
-        float xPos = Mathf.Clamp(worldPos.x, -1.31f, 1.31f);
+        float xPos = Mathf.Clamp(worldPos.x, minX, maxX);
 
-        // Move the item horizontally (Y stays fixed)
-        currentItem.transform.position = new Vector2(
-            xPos,
-            spawnPoint.position.y
-        );
+        currentItem.transform.position = new Vector2(xPos, spawnPoint.position.y);
 
-        // Move spawn point image if exists
         if (spawnPointImage != null) {
             Vector3 imgPos = spawnPointImage.position;
             imgPos.x = xPos;
             spawnPointImage.position = imgPos;
         }
+
+        // 👇 Reset idle if player moves
+        idleTimer = 0f;
+        isShaking = false;
     }
+
     void HandleDrop() {
-        if (Input.GetMouseButtonUp(0)) {
+        if (Input.GetMouseButtonUp(0) ||
+           (Input.touchCount > 0 && Input.GetTouch(0).phase == TouchPhase.Ended)) {
+
+            SpawnClickEffect();
+            SetClickImage(false);
+
             DropItem();
         }
+    }
+
+    // =========================
+    // 🧠 IDLE HINT SYSTEM
+    void HandleIdleHint() {
+        idleTimer += Time.deltaTime;
+
+        if (idleTimer >= idleDelay) {
+            isShaking = true;
+        }
+
+        if (isShaking && currentItem != null) {
+            float shakeX = Mathf.Sin(Time.time * shakeSpeed) * shakeAmount;
+
+            currentItem.transform.position = new Vector2(
+                spawnPoint.position.x + shakeX,
+                spawnPoint.position.y
+            );
+        }
+    }
+
+    // =========================
+    void SetClickImage(bool state) {
+        if (clickHideImage != null)
+            clickHideImage.SetActive(state);
     }
 
     void GenerateInitialItems() {
         upcomingItems.Clear();
 
-        for (int i = 0; i < upcomingSize; i++) {
+        for (int i = 0; i < upcomingSize; i++)
             upcomingItems.Enqueue(GetRandomItem());
-        }
 
         SpawnLatestItem();
     }
 
     void SpawnLatestItem() {
-        if (itemPrefab == null || items.Count == 0) {
-            Debug.LogError("SpawnManager Setup Missing!");
-            return;
-        }
-
         ItemData data = upcomingItems.Dequeue();
 
         GameObject obj = Instantiate(itemPrefab, spawnPoint.position, Quaternion.identity);
-
         currentItem = obj.GetComponent<Item>();
-
         currentItem.Initialize(data, false);
 
         upcomingItems.Enqueue(GetRandomItem());
+
+        SetClickImage(true);
+
+        // 👇 reset idle system
+        idleTimer = 0f;
+        isShaking = false;
     }
 
     IEnumerator SpawnNextItem() {
         yield return new WaitForSeconds(nextSpawnDelay);
-
         canTakeInput = true;
-
         SpawnLatestItem();
     }
 
     void DropItem() {
-        if (currentItem == null)
-            return;
-
         canTakeInput = false;
 
         currentItem.isDropped = true;
-
         currentItem.ActivatePhysics();
 
         if (currentItem.data.dropSound != null) {
@@ -167,47 +176,35 @@ public class SpawnManager : MonoBehaviour {
         StartCoroutine(SpawnNextItem());
     }
 
-    //  MAIN RANDOM SELECTOR
+    // =========================
+    void SpawnClickEffect() {
+        if (clickEffect == null)
+            return;
+
+        Vector3 pos = Input.touchCount > 0
+            ? Input.GetTouch(0).position
+            : Input.mousePosition;
+
+        pos.z = Mathf.Abs(cam.transform.position.z);
+
+        Instantiate(clickEffect, cam.ScreenToWorldPoint(pos), Quaternion.identity);
+    }
+
+    public void SpawnMergeEffect(GameObject effect, Vector2 pos) {
+        if (effect != null)
+            Instantiate(effect, pos, Quaternion.identity);
+    }
+
+    // =========================
     ItemData GetRandomItem() {
-        switch (difficulty) {
-            case Difficulty.Easy:
-                return GetEasyItem();
-
-            case Difficulty.Medium:
-                return GetMediumItem();
-
-            case Difficulty.Hard:
-                return GetHardItem();
-        }
-
-        return items[0];
+        return items[Random.Range(0, items.Count)];
     }
 
-    //  EASY ALGORITHM
-    ItemData GetEasyItem() {
-        int random = Random.Range(0, items.Count);
-        return items[random];
-    }
-
-    //  MEDIUM ALGORITHM
-    ItemData GetMediumItem() {
-        int random = Random.Range(0, items.Count);
-        return items[random];
-    }
-
-    //  HARD ALGORITHM
-    ItemData GetHardItem() {
-        int random = Random.Range(0, items.Count);
-        return items[random];
-    }
-
-    public void SpawnMergedItem(ItemData data, Vector2 position) {
-        GameObject obj = Instantiate(itemPrefab, position, Quaternion.identity);
+    public void SpawnMergedItem(ItemData data, Vector2 pos) {
+        GameObject obj = Instantiate(itemPrefab, pos, Quaternion.identity);
 
         Item item = obj.GetComponent<Item>();
-
         item.Initialize(data, true);
-
         item.ActivatePhysics();
     }
 }

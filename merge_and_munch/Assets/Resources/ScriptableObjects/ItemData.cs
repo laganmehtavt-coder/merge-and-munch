@@ -7,7 +7,8 @@ public class ItemData : ScriptableObject {
         Jelly,
         Solid
     }
-
+    [Header("Score")]
+    public int mergeScore = 10;
     [Header("Sprite")]
     public Sprite sprite;
     [Tooltip("Controls visual size")]
@@ -20,6 +21,12 @@ public class ItemData : ScriptableObject {
     public PhysicsMaterial2D physicsMaterial;
     public float mass = 1f;
     public float gravityScale = 1f;
+
+
+    [Header("Effects")]
+    public GameObject mergeEffect;  
+
+
 
     [Header("Sounds")]
     public AudioClip dropSound;
