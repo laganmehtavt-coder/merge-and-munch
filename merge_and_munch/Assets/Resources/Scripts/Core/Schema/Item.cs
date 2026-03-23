@@ -132,9 +132,6 @@ public class Item : MonoBehaviour {
 
     // 🔧 Physics reset
     void ResetPhysics(Item item) {
-
-
-
         Rigidbody2D[] rbs = item.GetComponentsInChildren<Rigidbody2D>();
 
         foreach (Rigidbody2D rb in rbs) {
