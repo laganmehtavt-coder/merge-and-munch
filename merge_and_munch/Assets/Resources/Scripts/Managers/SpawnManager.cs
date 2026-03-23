@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class SpawnManager : MonoBehaviour {
     public static SpawnManager Instance;
@@ -11,15 +12,8 @@ public class SpawnManager : MonoBehaviour {
     [Header("Items")]
     [SerializeField] List<ItemData> items = new List<ItemData>();
 
-    public enum Difficulty { Easy, Medium, Hard }
-
-    [Header("Difficulty")]
-    [SerializeField] Difficulty difficulty = Difficulty.Easy;
-
     [Header("Spawn Settings")]
     [SerializeField] Transform spawnPoint;
-    [SerializeField] Transform spawnPointImage;
-    [SerializeField] int upcomingSize = 3;
     [SerializeField] float nextSpawnDelay = 0.75f;
 
     [Header("Movement")]
@@ -29,22 +23,20 @@ public class SpawnManager : MonoBehaviour {
     [Header("Effects")]
     [SerializeField] GameObject clickEffect;
 
-    [Header("UI / Extra Image")]
-    [SerializeField] GameObject clickHideImage;
+    [Header("UI")]
+    [SerializeField] Image nextItemImage;
 
-    [Header("Idle Hint Settings")]
-    [SerializeField] float idleDelay = 1.5f;     // 👈 wait time
-    [SerializeField] float shakeAmount = 0.3f;   // 👈 left-right distance
-    [SerializeField] float shakeSpeed = 3f;      // 👈 speed
+    [Header("Follow Image (Moves Left/Right)")]
+    [SerializeField] Transform followImage; // 👈 follows item
+
+    [Header("Click Hide Image")]
+    [SerializeField] GameObject clickHideImage; // 👈 hide/show
 
     Queue<ItemData> upcomingItems = new Queue<ItemData>();
     Item currentItem;
 
     bool canTakeInput = true;
     Camera cam;
-
-    float idleTimer = 0f;
-    bool isShaking = false;
 
     void Awake() {
         if (Instance != null && Instance != this) {
@@ -65,7 +57,6 @@ public class SpawnManager : MonoBehaviour {
 
         HandleMovement();
         HandleDrop();
-        HandleIdleHint();
     }
 
     // =========================
@@ -83,17 +74,15 @@ public class SpawnManager : MonoBehaviour {
 
         float xPos = Mathf.Clamp(worldPos.x, minX, maxX);
 
+        // 👉 Move item
         currentItem.transform.position = new Vector2(xPos, spawnPoint.position.y);
 
-        if (spawnPointImage != null) {
-            Vector3 imgPos = spawnPointImage.position;
-            imgPos.x = xPos;
-            spawnPointImage.position = imgPos;
+        // 👉 Move follow image with item
+        if (followImage != null) {
+            Vector3 pos = followImage.position;
+            pos.x = xPos;
+            followImage.position = pos;
         }
-
-        // 👇 Reset idle if player moves
-        idleTimer = 0f;
-        isShaking = false;
     }
 
     void HandleDrop() {
@@ -101,28 +90,11 @@ public class SpawnManager : MonoBehaviour {
            (Input.touchCount > 0 && Input.GetTouch(0).phase == TouchPhase.Ended)) {
 
             SpawnClickEffect();
+
+            // 👉 hide click image
             SetClickImage(false);
 
             DropItem();
-        }
-    }
-
-    // =========================
-    // 🧠 IDLE HINT SYSTEM
-    void HandleIdleHint() {
-        idleTimer += Time.deltaTime;
-
-        if (idleTimer >= idleDelay) {
-            isShaking = true;
-        }
-
-        if (isShaking && currentItem != null) {
-            float shakeX = Mathf.Sin(Time.time * shakeSpeed) * shakeAmount;
-
-            currentItem.transform.position = new Vector2(
-                spawnPoint.position.x + shakeX,
-                spawnPoint.position.y
-            );
         }
     }
 
@@ -132,13 +104,15 @@ public class SpawnManager : MonoBehaviour {
             clickHideImage.SetActive(state);
     }
 
+    // =========================
     void GenerateInitialItems() {
         upcomingItems.Clear();
 
-        for (int i = 0; i < upcomingSize; i++)
-            upcomingItems.Enqueue(GetRandomItem());
+        upcomingItems.Enqueue(GetRandomItem());
+        upcomingItems.Enqueue(GetRandomItem());
 
         SpawnLatestItem();
+        UpdateNextItemUI();
     }
 
     void SpawnLatestItem() {
@@ -150,11 +124,10 @@ public class SpawnManager : MonoBehaviour {
 
         upcomingItems.Enqueue(GetRandomItem());
 
-        SetClickImage(true);
+        UpdateNextItemUI();
 
-        // 👇 reset idle system
-        idleTimer = 0f;
-        isShaking = false;
+        // 👉 show click image again
+        SetClickImage(true);
     }
 
     IEnumerator SpawnNextItem() {
@@ -174,6 +147,19 @@ public class SpawnManager : MonoBehaviour {
         }
 
         StartCoroutine(SpawnNextItem());
+    }
+
+    // =========================
+    void UpdateNextItemUI() {
+        if (nextItemImage == null || upcomingItems.Count == 0)
+            return;
+
+        ItemData next = upcomingItems.Peek();
+
+        if (next != null && next.sprite != null) {
+            nextItemImage.sprite = next.sprite;
+            nextItemImage.enabled = true;
+        }
     }
 
     // =========================

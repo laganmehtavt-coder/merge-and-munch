@@ -42,10 +42,10 @@ public class GameManager : MonoBehaviour {
 
     void UpdateUI() {
         if (scoreText != null)
-            scoreText.text = "Score: " + currentScore;
+            scoreText.text = "" + currentScore;
 
         if (highScoreText != null)
-            highScoreText.text = "High Score: " + highScore;
+            highScoreText.text = "" + highScore;
     }
 
     // =========================
