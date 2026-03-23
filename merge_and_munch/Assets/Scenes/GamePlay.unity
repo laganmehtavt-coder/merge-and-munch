@@ -2929,8 +2929,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 73da61514f215e34fa8993e2f3005527, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  clickEffectPrefab: {fileID: 8771972552311404799, guid: bbf9e36a48d6c5648a13889afab076fd, type: 3}
-  mergeEffectPrefab: {fileID: 4553287630450876385, guid: 15483e51212e3d74886ea57291f4639a, type: 3}
   itemPrefab: {fileID: 409391677702575323, guid: da48ea89e89979449b6b3659e0532cd2, type: 3}
   items:
   - {fileID: 11400000, guid: 6924b448596dabe4cafaca35cd2a9dd9, type: 2}
