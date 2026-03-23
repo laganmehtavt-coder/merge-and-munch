@@ -166,11 +166,6 @@ public class Item : MonoBehaviour {
             SpawnManager.Instance.SpawnMergeEffect(data.mergeEffect, spawnPos);
         }
 
-        // 🧮 ADD SCORE
-        if (GameManager.Instance != null) {
-            GameManager.Instance.AddScore(data.mergeScore);
-        }
-
         // 🔄 Spawn next item
         if (data.nextItem != null) {
             SpawnManager.Instance.SpawnMergedItem(data.nextItem, spawnPos);

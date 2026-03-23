@@ -9,6 +9,10 @@ public class SpawnManager : MonoBehaviour {
     [Header("Item Prefab")]
     [SerializeField] GameObject itemPrefab;
 
+    [Header("Merge Popup")]
+    [SerializeField] GameObject mergePopupTextPrefab;
+
+
     [Header("Items")]
     [SerializeField] List<ItemData> items = new List<ItemData>();
 
@@ -26,11 +30,28 @@ public class SpawnManager : MonoBehaviour {
     [Header("UI")]
     [SerializeField] Image nextItemImage;
 
-    [Header("Follow Image (Moves Left/Right)")]
-    [SerializeField] Transform followImage; // 👈 follows item
+    [Header("Follow Image")]
+    [SerializeField] Transform followImage;
 
     [Header("Click Hide Image")]
-    [SerializeField] GameObject clickHideImage; // 👈 hide/show
+    [SerializeField] GameObject clickHideImage;
+
+    // =========================
+    // 💣 BOMB SYSTEM
+    [Header("Bomb System")]
+    [SerializeField] GameObject bombEffect;
+    [SerializeField] GameObject bombModeUIHide;
+    [SerializeField] GameObject extraHideObject;
+
+    bool isBombMode = false;
+
+    // =========================
+    // ⚡ UPGRADE SYSTEM (CLICK ANY ITEM)
+    [Header("Upgrade System")]
+    [SerializeField] GameObject upgradeEffect;
+    [SerializeField] GameObject upgradeUIHide;
+
+    bool isUpgradeMode = false;
 
     Queue<ItemData> upcomingItems = new Queue<ItemData>();
     Item currentItem;
@@ -52,6 +73,19 @@ public class SpawnManager : MonoBehaviour {
     }
 
     void Update() {
+
+        // 💣 Bomb Mode
+        if (isBombMode) {
+            HandleBombClick();
+            return;
+        }
+
+        // ⚡ Upgrade Mode (CLICK ANY ITEM)
+        if (isUpgradeMode) {
+            HandleUpgradeClick();
+            return;
+        }
+
         if (currentItem == null || !canTakeInput || currentItem.isDropped)
             return;
 
@@ -60,6 +94,7 @@ public class SpawnManager : MonoBehaviour {
     }
 
     // =========================
+    // MOVEMENT
     void HandleMovement() {
         Vector3 pointerPos = Input.touchCount > 0
             ? Input.GetTouch(0).position
@@ -74,10 +109,8 @@ public class SpawnManager : MonoBehaviour {
 
         float xPos = Mathf.Clamp(worldPos.x, minX, maxX);
 
-        // 👉 Move item
         currentItem.transform.position = new Vector2(xPos, spawnPoint.position.y);
 
-        // 👉 Move follow image with item
         if (followImage != null) {
             Vector3 pos = followImage.position;
             pos.x = xPos;
@@ -90,12 +123,98 @@ public class SpawnManager : MonoBehaviour {
            (Input.touchCount > 0 && Input.GetTouch(0).phase == TouchPhase.Ended)) {
 
             SpawnClickEffect();
-
-            // 👉 hide click image
             SetClickImage(false);
-
             DropItem();
         }
+    }
+
+    // =========================
+    // 💣 BOMB
+    void HandleBombClick() {
+        if (Input.GetMouseButtonDown(0) ||
+           (Input.touchCount > 0 && Input.GetTouch(0).phase == TouchPhase.Began)) {
+
+            Item item = GetClickedItem();
+
+            if (item != null) {
+                if (bombEffect != null)
+                    Instantiate(bombEffect, item.transform.position, Quaternion.identity);
+
+                Destroy(item.gameObject);
+            }
+
+            isBombMode = false;
+            SetBombUI(true);
+        }
+    }
+
+    public void ActivateBomb() {
+        isBombMode = true;
+        SetBombUI(false);
+    }
+
+    void SetBombUI(bool state) {
+        if (bombModeUIHide != null)
+            bombModeUIHide.SetActive(state);
+
+        if (extraHideObject != null)
+            extraHideObject.SetActive(state);
+    }
+
+    // =========================
+    // ⚡ UPGRADE (CLICK ANY ITEM)
+    void HandleUpgradeClick() {
+        if (Input.GetMouseButtonDown(0) ||
+           (Input.touchCount > 0 && Input.GetTouch(0).phase == TouchPhase.Began)) {
+
+            Item item = GetClickedItem();
+
+            if (item != null && item.data.nextItem != null) {
+
+                Vector2 pos = item.transform.position;
+
+                // ✨ effect
+                if (upgradeEffect != null)
+                    Instantiate(upgradeEffect, pos, Quaternion.identity);
+
+                // 🔄 spawn next
+                SpawnMergedItem(item.data.nextItem, pos);
+
+                Destroy(item.gameObject);
+            }
+
+            isUpgradeMode = false;
+            SetUpgradeUI(true);
+        }
+    }
+
+    public void ActivateUpgrade() {
+        isUpgradeMode = true;
+        SetUpgradeUI(false);
+    }
+
+    void SetUpgradeUI(bool state) {
+        if (upgradeUIHide != null)
+            upgradeUIHide.SetActive(state);
+    }
+
+    // =========================
+    // 🎯 COMMON CLICK DETECTION
+    Item GetClickedItem() {
+        Vector3 pos = Input.touchCount > 0
+            ? Input.GetTouch(0).position
+            : Input.mousePosition;
+
+        pos.z = Mathf.Abs(cam.transform.position.z);
+
+        Vector2 worldPos = cam.ScreenToWorldPoint(pos);
+
+        RaycastHit2D hit = Physics2D.Raycast(worldPos, Vector2.zero);
+
+        if (hit.collider != null)
+            return hit.collider.GetComponent<Item>();
+
+        return null;
     }
 
     // =========================
@@ -104,7 +223,6 @@ public class SpawnManager : MonoBehaviour {
             clickHideImage.SetActive(state);
     }
 
-    // =========================
     void GenerateInitialItems() {
         upcomingItems.Clear();
 
@@ -125,8 +243,6 @@ public class SpawnManager : MonoBehaviour {
         upcomingItems.Enqueue(GetRandomItem());
 
         UpdateNextItemUI();
-
-        // 👉 show click image again
         SetClickImage(true);
     }
 
@@ -186,11 +302,27 @@ public class SpawnManager : MonoBehaviour {
         return items[Random.Range(0, items.Count)];
     }
 
+    // ✅ UPDATED — Merge hone pe score popup spawn hota hai
     public void SpawnMergedItem(ItemData data, Vector2 pos) {
         GameObject obj = Instantiate(itemPrefab, pos, Quaternion.identity);
 
         Item item = obj.GetComponent<Item>();
         item.Initialize(data, true);
         item.ActivatePhysics();
+
+        // ✅ TEXT POPUP SPAWN
+        SpawnMergePopup(pos, data);
+    }
+    void SpawnMergePopup(Vector2 pos, ItemData data) {
+        if (mergePopupTextPrefab == null)
+            return;
+
+        GameObject popup = Instantiate(mergePopupTextPrefab, pos, Quaternion.identity);
+
+        // Agar TextMeshPro use kar rahe ho
+        TMPro.TextMeshPro text = popup.GetComponent<TMPro.TextMeshPro>();
+        if (text != null) {
+            text.text = "+" + data.mergeScore; // 👈 apna score variable use karo
+        }
     }
 }
