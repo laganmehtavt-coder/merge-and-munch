@@ -33,6 +33,10 @@ public class SpawnManager : MonoBehaviour {
     [Header("Click Hide Image")]
     [SerializeField] GameObject clickHideImage;
 
+    [Header("Spawn UI")]
+    [SerializeField] GameObject spawnUIObject;
+    [SerializeField] Image spawnUIImage;
+
     // 💣 Bomb
     [Header("Bomb System")]
     [SerializeField] GameObject bombEffect;
@@ -46,14 +50,17 @@ public class SpawnManager : MonoBehaviour {
     [SerializeField] GameObject upgradeUIHide;
     bool isUpgradeMode = false;
 
-    // 🎥 SHAKE HOLDER (IMPORTANT)
-    [Header("Camera Shake")]
-    [SerializeField] Transform shakeHolder;   // 👈 DRAG IN INSPECTOR
+    // 🔥 FIX VARIABLES
+    bool isSpecialModeActive = false;
+    float inputBlockTimer = 0f;
 
+    // 🎥 SHAKE HOLDER
+    [Header("Camera Shake")]
+    [SerializeField] Transform shakeHolder;
     [SerializeField] float shakeDuration = 0.1f;
     [SerializeField] float shakeAmountX = 0.01f;
     [SerializeField] float shakeAmountY = 0.01f;
-    [SerializeField] float shakeSpeed = 0f;
+    [SerializeField] float shakeSpeed = 25f;
 
     bool isShaking = false;
     Vector3 shakeDefaultPos;
@@ -72,7 +79,13 @@ public class SpawnManager : MonoBehaviour {
         }
 
         Instance = this;
+
         cam = Camera.main;
+
+        if (cam == null) {
+            Debug.LogError("❌ Camera not found!");
+            return;
+        }
 
         if (shakeHolder != null)
             shakeDefaultPos = shakeHolder.localPosition;
@@ -84,6 +97,15 @@ public class SpawnManager : MonoBehaviour {
 
     void Update() {
 
+        if (cam == null)
+            return;
+
+        // 🔥 SAME CLICK BLOCK FIX
+        if (inputBlockTimer > 0f) {
+            inputBlockTimer -= Time.deltaTime;
+            return;
+        }
+
         if (isBombMode) {
             HandleBombClick();
             return;
@@ -93,6 +115,9 @@ public class SpawnManager : MonoBehaviour {
             HandleUpgradeClick();
             return;
         }
+
+        if (isSpecialModeActive)
+            return;
 
         if (currentItem == null || !canTakeInput || currentItem.isDropped)
             return;
@@ -134,6 +159,13 @@ public class SpawnManager : MonoBehaviour {
 
             SpawnClickEffect();
             SetClickImage(false);
+
+            if (spawnUIObject != null)
+                spawnUIObject.SetActive(false);
+
+            if (spawnPoint != null)
+                spawnPoint.gameObject.SetActive(false);
+
             DropItem();
         }
     }
@@ -146,26 +178,43 @@ public class SpawnManager : MonoBehaviour {
             Item item = GetClickedItem();
 
             if (item != null) {
-                Instantiate(bombEffect, item.transform.position, Quaternion.identity);
+
+                if (bombEffect != null)
+                    Instantiate(bombEffect, item.transform.position, Quaternion.identity);
+
                 Destroy(item.gameObject);
                 StartShake(0.2f);
+
+                inputBlockTimer = 0.2f; // 🔥 FIX
             }
 
             isBombMode = false;
+            isSpecialModeActive = false;
+
             SetBombUI(true);
         }
     }
 
     public void ActivateBomb() {
         isBombMode = true;
+        isSpecialModeActive = true;
+
+        if (spawnUIObject != null)
+            spawnUIObject.SetActive(false);
+
         SetBombUI(false);
     }
 
     void SetBombUI(bool state) {
-        if (bombModeUIHide)
+
+        if (bombModeUIHide != null)
             bombModeUIHide.SetActive(state);
-        if (extraHideObject)
+
+        if (extraHideObject != null)
             extraHideObject.SetActive(state);
+
+        if (state && spawnUIObject != null)
+            spawnUIObject.SetActive(true);
     }
 
     // ================= UPGRADE =================
@@ -179,55 +228,100 @@ public class SpawnManager : MonoBehaviour {
 
                 Vector2 pos = item.transform.position;
 
-                Instantiate(upgradeEffect, pos, Quaternion.identity);
+                if (upgradeEffect != null)
+                    Instantiate(upgradeEffect, pos, Quaternion.identity);
+
                 SpawnMergedItem(item.data.nextItem, pos);
 
                 Destroy(item.gameObject);
                 StartShake(0.2f);
+
+                inputBlockTimer = 0.2f; // 🔥 FIX
             }
 
             isUpgradeMode = false;
+            isSpecialModeActive = false;
+
             SetUpgradeUI(true);
         }
     }
 
     public void ActivateUpgrade() {
         isUpgradeMode = true;
+        isSpecialModeActive = true;
+
+        if (spawnUIObject != null)
+            spawnUIObject.SetActive(false);
+
         SetUpgradeUI(false);
     }
 
     void SetUpgradeUI(bool state) {
-        if (upgradeUIHide)
+
+        if (upgradeUIHide != null)
             upgradeUIHide.SetActive(state);
+
+        if (state && spawnUIObject != null)
+            spawnUIObject.SetActive(true);
     }
 
     // ================= CLICK =================
     Item GetClickedItem() {
 
-        Vector2 worldPos = cam.ScreenToWorldPoint(Input.mousePosition);
-        RaycastHit2D hit = Physics2D.Raycast(worldPos, Vector2.zero);
+        if (cam == null)
+            return null;
 
-        if (hit.collider != null)
-            return hit.collider.GetComponent<Item>();
+        Vector2 worldPos;
+
+        if (Input.touchCount > 0)
+            worldPos = cam.ScreenToWorldPoint(Input.GetTouch(0).position);
+        else
+            worldPos = cam.ScreenToWorldPoint(Input.mousePosition);
+
+        Collider2D col = Physics2D.OverlapPoint(worldPos);
+
+        if (col != null)
+            return col.GetComponent<Item>();
 
         return null;
     }
 
     // ================= SPAWN =================
     void GenerateInitialItems() {
+
+        if (items.Count == 0) {
+            Debug.LogError("❌ Items list empty!");
+            return;
+        }
+
         upcomingItems.Clear();
         upcomingItems.Enqueue(GetRandomItem());
         upcomingItems.Enqueue(GetRandomItem());
+
         SpawnLatestItem();
     }
 
     void SpawnLatestItem() {
 
+        if (spawnPoint == null || itemPrefab == null)
+            return;
+
+        spawnPoint.gameObject.SetActive(true);
+
         ItemData data = upcomingItems.Dequeue();
 
         GameObject obj = Instantiate(itemPrefab, spawnPoint.position, Quaternion.identity);
+
         currentItem = obj.GetComponent<Item>();
-        currentItem.Initialize(data, false);
+
+        if (currentItem != null)
+            currentItem.Initialize(data, false);
+
+        if (spawnUIObject != null)
+            spawnUIObject.SetActive(true);
+
+        if (spawnUIImage != null && data != null)
+            spawnUIImage.sprite = data.sprite;
 
         upcomingItems.Enqueue(GetRandomItem());
         SetClickImage(true);
@@ -235,31 +329,35 @@ public class SpawnManager : MonoBehaviour {
 
     IEnumerator SpawnNextItem() {
         yield return new WaitForSeconds(nextSpawnDelay);
+
         canTakeInput = true;
         SpawnLatestItem();
     }
 
     void DropItem() {
 
+        if (currentItem == null)
+            return;
+
         canTakeInput = false;
 
         currentItem.isDropped = true;
         currentItem.ActivatePhysics();
 
-        if (currentItem.data?.dropSound != null)
-            SoundManager.Instance.PlaySound(currentItem.data.dropSound);
+        if (currentItem.data != null && currentItem.data.dropSound != null)
+            SoundManager.Instance?.PlaySound(currentItem.data.dropSound);
 
         StartCoroutine(SpawnNextItem());
     }
 
     void SetClickImage(bool state) {
-        if (clickHideImage)
+        if (clickHideImage != null)
             clickHideImage.SetActive(state);
     }
 
     void SpawnClickEffect() {
 
-        if (!clickEffect)
+        if (clickEffect == null || cam == null)
             return;
 
         Vector3 pos = cam.ScreenToWorldPoint(Input.mousePosition);
@@ -273,20 +371,26 @@ public class SpawnManager : MonoBehaviour {
     // ================= MERGE =================
     public void SpawnMergedItem(ItemData data, Vector2 pos) {
 
+        if (itemPrefab == null)
+            return;
+
         GameObject obj = Instantiate(itemPrefab, pos, Quaternion.identity);
 
         Item item = obj.GetComponent<Item>();
-        item.Initialize(data, true);
-        item.ActivatePhysics();
+
+        if (item != null) {
+            item.Initialize(data, true);
+            item.ActivatePhysics();
+        }
 
         GameManager.Instance?.AddScore(data.mergeScore);
 
-        if (mergePopupTextPrefab) {
+        if (mergePopupTextPrefab != null) {
             GameObject popup = Instantiate(mergePopupTextPrefab, pos, Quaternion.identity);
             popup.GetComponent<FloatingText>()?.SetScore(data.mergeScore);
         }
 
-        if (data.mergeEffect)
+        if (data.mergeEffect != null)
             Instantiate(data.mergeEffect, pos, Quaternion.identity);
 
         StartShake(0.25f);
