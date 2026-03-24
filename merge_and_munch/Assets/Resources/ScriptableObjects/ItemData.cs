@@ -13,7 +13,7 @@ public class ItemData : ScriptableObject {
     public Sprite sprite;
     [Tooltip("Controls visual size")]
     public float size = 1f;
-
+    
     [Header("Behaviour")]
     public BehaviourType behaviour;
 
