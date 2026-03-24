@@ -310,7 +310,11 @@ public class SpawnManager : MonoBehaviour {
         item.Initialize(data, true);
         item.ActivatePhysics();
 
-        // ✅ TEXT POPUP SPAWN
+        // ✅ ADD SCORE
+        if (GameManager.Instance != null)
+            GameManager.Instance.AddScore(data.mergeScore);
+
+        // ✅ FLOATING TEXT
         SpawnMergePopup(pos, data);
     }
     void SpawnMergePopup(Vector2 pos, ItemData data) {
@@ -319,10 +323,10 @@ public class SpawnManager : MonoBehaviour {
 
         GameObject popup = Instantiate(mergePopupTextPrefab, pos, Quaternion.identity);
 
-        // Agar TextMeshPro use kar rahe ho
-        TMPro.TextMeshPro text = popup.GetComponent<TMPro.TextMeshPro>();
-        if (text != null) {
-            text.text = "+" + data.mergeScore; // 👈 apna score variable use karo
+        // ✅ IMPORTANT: use FloatingText script
+        FloatingText ft = popup.GetComponent<FloatingText>();
+        if (ft != null) {
+            ft.SetScore(data.mergeScore); // 🔥 SAME SCORE
         }
     }
 }
